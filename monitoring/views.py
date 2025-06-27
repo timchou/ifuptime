@@ -1,10 +1,9 @@
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import UserRegisterForm
 from django.contrib.auth.decorators import login_required
-from .models import Monitor, HttpMonitor, KeywordMonitor, ApiMonitor, MonitorLog
+from .models import Monitor, HttpMonitor, KeywordMonitor, ApiMonitor, MonitorLog, SslMonitor
 from .utils import run_monitor_check_async
 from .tasks import perform_monitor_check
 from django_celery_beat.models import PeriodicTask, IntervalSchedule
@@ -113,6 +112,10 @@ def monitor_create_view(request):
                 expected_status_code=expected_status_code,
                 response_keyword=response_keyword
             )
+        elif monitor_type == 'ssl':
+            SslMonitor.objects.create(
+                monitor=monitor
+            )
 
         # Schedule the task with Celery Beat
         periodic_task_name = f'Monitor Check for {monitor.name} (ID: {monitor.id})'
@@ -154,6 +157,8 @@ def monitor_detail_view(request, monitor_id):
         monitor_details = KeywordMonitor.objects.get(monitor=monitor)
     elif monitor.monitor_type == 'api':
         monitor_details = ApiMonitor.objects.get(monitor=monitor)
+    elif monitor.monitor_type == 'ssl':
+        monitor_details = SslMonitor.objects.get(monitor=monitor)
 
     logs = MonitorLog.objects.filter(monitor=monitor).order_by('-timestamp')[:100] # Get latest 100 logs for chart
 
@@ -174,6 +179,8 @@ def monitor_edit_view(request, monitor_id):
         monitor_details = KeywordMonitor.objects.get(monitor=monitor)
     elif monitor.monitor_type == 'api':
         monitor_details = ApiMonitor.objects.get(monitor=monitor)
+    elif monitor.monitor_type == 'ssl':
+        monitor_details = SslMonitor.objects.get(monitor=monitor)
 
     if request.method == 'POST':
         monitor.name = request.POST.get('name')
@@ -182,40 +189,8 @@ def monitor_edit_view(request, monitor_id):
         monitor.is_active = bool(request.POST.get('is_active')) # Handle checkbox
         monitor.save()
 
-        if monitor.monitor_type == 'http':
-            monitor_details.expected_status_code = request.POST.get('http_expected_status_code', 200)
-            monitor_details.save()
-        elif monitor.monitor_type == 'keyword':
-            monitor_details.keyword = request.POST.get('keyword')
-            monitor_details.expected_status_code = request.POST.get('keyword_expected_status_code', 200)
-            monitor_details.save()
-        elif monitor.monitor_type == 'api':
-            method = request.POST.get('api_method', 'GET')
-            headers = request.POST.get('api_headers')
-            body_data = request.POST.get('api_body_data')
-            expected_status_code = request.POST.get('api_expected_status_code', 200)
-            response_keyword = request.POST.get('api_response_keyword')
-
-            # Validate JSON fields
-            try:
-                if headers: json.loads(headers)
-            except json.JSONDecodeError:
-                # Handle invalid JSON for headers
-                pass # For now, just pass, but in a real app, you'd want to show an error
-            try:
-                if body_data: json.loads(body_data)
-            except json.JSONDecodeError:
-                # Handle invalid JSON for body_data
-                pass # For now, just pass, but in a real app, you'd want to show an error
-
-            ApiMonitor.objects.create(
-                monitor=monitor,
-                method=method,
-                headers=headers,
-                body_data=body_data,
-                expected_status_code=expected_status_code,
-                response_keyword=response_keyword
-            )
+        # No specific fields to save for SslMonitor yet, but keep the structure
+        # for future expansion if needed.
 
         # Update Celery Beat task if frequency changed
         periodic_task = PeriodicTask.objects.get(name=f'Monitor Check for {monitor.name} (ID: {monitor.id})')

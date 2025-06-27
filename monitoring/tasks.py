@@ -1,4 +1,3 @@
-
 from celery import shared_task
 import asyncio
 import json
@@ -53,7 +52,10 @@ def batch_save_monitor_logs():
                     is_up=log_data['is_up'],
                     response_time=log_data['response_time'],
                     status_code=log_data['status_code'],
-                    response_content=log_data['response_content']
+                    response_content=log_data['response_content'],
+                    ssl_valid_to=log_data.get('ssl_valid_to'),
+                    ssl_days_remaining=log_data.get('ssl_days_remaining'),
+                    ssl_error=log_data.get('ssl_error')
                 ))
             except Monitor.DoesNotExist:
                 print(f"Monitor with ID {log_data['monitor_id']} not found for log entry.")
@@ -116,6 +118,9 @@ def send_monitor_down_email(monitor_id, log_id):
         user = monitor.user
 
         subject = f"Monitor Alert: {monitor.name} is Down!"
+        if monitor.monitor_type == 'ssl' and log.ssl_days_remaining is not None and log.ssl_days_remaining < 7:
+            subject = f"SSL Certificate Alert: {monitor.name} expires in {log.ssl_days_remaining} days!"
+
         from_email = settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@ifuptime.com'
         to_email = user.email
 
@@ -163,7 +168,7 @@ def send_daily_report_emails():
             if logs_for_monitor.exists():
                 total_checks = logs_for_monitor.count()
                 up_count = logs_for_monitor.filter(is_up=True).count()
-                down_count = total_checks - up_count
+                down_count = total_for_monitor - up_count
                 
                 # Filter out logs with response_time = 0.0 for accurate min/max/avg
                 valid_response_times = logs_for_monitor.exclude(response_time=0.0)

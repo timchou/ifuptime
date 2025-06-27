@@ -1,4 +1,3 @@
-
 {% extends 'base.html' %}
 {% load static %}
 
@@ -27,6 +26,7 @@
                     <option value="http" {% if monitor.monitor_type == 'http' %}selected{% endif %}>HTTP(s)存活检测</option>
                     <option value="keyword" {% if monitor.monitor_type == 'keyword' %}selected{% endif %}>关键字检测</option>
                     <option value="api" {% if monitor.monitor_type == 'api' %}selected{% endif %}>API检测</option>
+                    <option value="ssl" {% if monitor.monitor_type == 'ssl' %}selected{% endif %}>SSL证书检测</option>
                 </select>
                 <small class="form-text text-muted">Monitor type cannot be changed after creation.</small>
             </div>
@@ -90,6 +90,11 @@
                 </div>
             </div>
 
+            <!-- SSL Monitor Fields (No specific fields needed for now) -->
+            <div id="ssl-fields" class="monitor-type-fields" {% if monitor.monitor_type != 'ssl' %}style="display: none;"{% endif %}>
+                <p class="text-muted">SSL certificate will be checked for validity and expiration.</p>
+            </div>
+
             <button type="submit" class="btn btn-success">Save Changes</button>
             <a href="{% url 'monitor_detail' monitor.id %}" class="btn btn-secondary">Cancel</a>
         </form>
@@ -106,6 +111,8 @@
                 $('#keyword-fields').show();
             } else if (initialType === 'api') {
                 $('#api-fields').show();
+            } else if (initialType === 'ssl') {
+                $('#ssl-fields').show();
             }
         });
     </script>

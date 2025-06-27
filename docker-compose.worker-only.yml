@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  celery_worker:
+    build: .
+    command: celery -A ifuptime worker -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_PORT=${MYSQL_PORT}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - MONITORING_NODE_NAME=${MONITORING_NODE_NAME}
+      - MONITORING_NODE_LOCATION=${MONITORING_NODE_LOCATION}

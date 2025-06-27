@@ -38,6 +38,8 @@
                     <p><strong>Body Data:</strong> <pre>{{ monitor_details.body_data|default_if_none:"N/A" }}</pre></p>
                     <p><strong>Expected Status Code:</strong> {{ monitor_details.expected_status_code }}</p>
                     <p><strong>Response Keyword:</strong> {{ monitor_details.response_keyword|default_if_none:"N/A" }}</p>
+                {% elif monitor.monitor_type == 'ssl' %}
+                    <p class="text-muted">SSL certificate will be checked for validity and expiration.</p>
                 {% endif %}
             </div>
         {% endif %}
@@ -57,6 +59,9 @@
                             <th>Status</th>
                             <th>Response Time (ms)</th>
                             <th>Status Code</th>
+                            <th>SSL Valid To</th>
+                            <th>SSL Days Remaining</th>
+                            <th>SSL Error</th>
                             <th>Response Content (Partial)</th>
                         </tr>
                     </thead>
@@ -67,6 +72,19 @@
                                 <td>{% if log.is_up %}<span class="badge badge-success">Up</span>{% else %}<span class="badge badge-danger">Down</span>{% endif %}</td>
                                 <td>{{ log.response_time|floatformat:2 }}</td>
                                 <td>{{ log.status_code|default_if_none:"N/A" }}</td>
+                                <td>{{ log.ssl_valid_to|date:"Y-m-d H:i"|default_if_none:"N/A" }}</td>
+                                <td>
+                                    {% if log.ssl_days_remaining is not None %}
+                                        {% if log.ssl_days_remaining < 7 %}
+                                            <span class="badge badge-danger">{{ log.ssl_days_remaining }} days</span>
+                                        {% else %}
+                                            <span class="badge badge-success">{{ log.ssl_days_remaining }} days</span>
+                                        {% endif %}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.ssl_error|default_if_none:"N/A" }}</td>
                                 <td>{{ log.response_content|truncatechars:100|default_if_none:"N/A" }}</td>
                             </tr>
                         {% endfor %}
@@ -97,7 +115,7 @@
             var data = [];
 
             {% for log in logs|dictsortreversed:"timestamp" %}
-                labels.push("{{ log.timestamp|date:"H:i:s" }}");
+                labels.push("{{ log.timestamp|date:"H:i" }}");
                 data.push({{ log.response_time|floatformat:2 }});
             {% endfor %}
 

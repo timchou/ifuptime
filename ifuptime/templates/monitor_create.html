@@ -19,6 +19,7 @@
                     <option value="http">HTTP(s)存活检测</option>
                     <option value="keyword">关键字检测</option>
                     <option value="api">API检测</option>
+                    <option value="ssl">SSL证书检测</option>
                 </select>
             </div>
             <div class="mb-3">
@@ -77,10 +78,18 @@
                 </div>
             </div>
 
+            <!-- SSL Monitor Fields (No specific fields needed for now) -->
+            <div id="ssl-fields" class="monitor-type-fields" style="display: none;">
+                <p class="text-muted">SSL certificate will be checked for validity and expiration.</p>
+            </div>
+
             <button type="submit" class="btn btn-success">Create Monitor</button>
         </form>
     </div>
+{% endblock %}
 
+{% block scripts %}
+    {{ block.super }} {# Keep scripts from base.html #}
     <script>
         $(document).ready(function() {
             $('#monitor_type').change(function() {
@@ -92,6 +101,8 @@
                     $('#keyword-fields').show();
                 } else if (selectedType === 'api') {
                     $('#api-fields').show();
+                } else if (selectedType === 'ssl') {
+                    $('#ssl-fields').show();
                 }
             });
         });

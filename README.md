@@ -39,7 +39,7 @@ This project provides a web application to monitor the health of websites and AP
 
 8.  **Run Celery Beat:**
     ```bash
-    ./venv/bin/celery -A ifuptime beat -l info
+    ./venv/bin/celery -A ifuptime beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     ```
 
 9.  **Run Django Development Server:**
@@ -49,24 +49,29 @@ This project provides a web application to monitor the health of websites and AP
 
 10. **Access the application:** Open your browser and go to `http://127.0.0.1:8000/`.
 
-## Deployment with Docker Compose
+## Distributed Deployment with Docker Compose
 
-This section outlines how to deploy the application using Docker Compose, which includes Nginx, Gunicorn (Django), MySQL, Redis, Celery Worker, and Celery Beat.
+This section outlines how to deploy the application in a distributed manner using Docker Compose, with a central master node and multiple worker-only monitoring nodes.
 
 ### Prerequisites
 
 *   Docker installed on your server.
 *   Docker Compose installed on your server.
 
-### Deployment Steps
+### Deployment Architecture
 
-1.  **Navigate to the project root directory:**
+*   **Master Node:** Runs the Django web application (Gunicorn), Nginx, central MySQL database, Redis server, and its own Celery Worker and **Celery Beat** instances. This node provides the main web interface and manages all monitoring tasks.
+*   **Worker-Only Nodes:** These nodes only run Celery Worker instances. They do not provide a web interface or run their own database/Redis. Instead, they connect to the master node's MySQL and Redis services to execute monitoring tasks.
+
+### Master Node Deployment
+
+1.  **Navigate to the project root directory on your Master Node:**
     ```bash
     cd /path/to/your/ifuptime.com
     ```
 
 2.  **Create a `.env` file:**
-    Create a file named `.env` in the project root directory with the following content. **Replace the placeholder values** with your actual MySQL root password, a strong Django secret key, and the node-specific information.
+    Create a file named `.env` in the project root directory with the following content. **Replace `your_mysql_root_password` and `your_django_secret_key_here`** with strong, unique values.
     ```env
     MYSQL_ROOT_PASSWORD=your_mysql_root_password
     MYSQL_DATABASE=ifuptime
@@ -74,25 +79,21 @@ This section outlines how to deploy the application using Docker Compose, which 
     MYSQL_PASSWORD=
     DJANGO_SECRET_KEY=your_django_secret_key_here
 
-    # Monitoring Node Configuration (IMPORTANT: Set unique values for each deployment node)
-    MONITORING_NODE_NAME=your_node_name_here # e.g., Shanghai-Node-01, Beijing-Node-02
-    MONITORING_NODE_LOCATION=your_node_location_here # e.g., Shanghai, Beijing
+    # Monitoring Node Configuration for the Master Node's Celery instances
+    MONITORING_NODE_NAME=master-node-01 # e.g., Shanghai-Master-Node
+    MONITORING_NODE_LOCATION=Shanghai # e.g., Shanghai
     ```
-    *   **`MYSQL_ROOT_PASSWORD`**: The root password for your MySQL database. If your local MySQL root password is empty, you can leave this empty as well, but it's highly recommended to set a strong password in production.
-    *   **`DJANGO_SECRET_KEY`**: A unique, unpredictable secret key for your Django project. You can copy this from your local `ifuptime/settings.py` file.
-    *   **`MONITORING_NODE_NAME`**: A unique name for this specific monitoring node. This will be used to identify the node in the admin panel and in monitor logs.
-    *   **`MONITORING_NODE_LOCATION`**: The geographical location of this node.
 
 3.  **Build Docker Images:**
-    This command will build the Docker images for your `web`, `celery_worker`, and `celery_beat` services based on the `Dockerfile`.
+    This command will build the Docker images for your services based on the `Dockerfile`.
     ```bash
-    docker-compose build
+    docker-compose -f docker-compose.full.yml build
     ```
 
-4.  **Start Services:**
-    This command will start all the services defined in `docker-compose.yml` in detached mode (in the background).
+4.  **Start Master Services:**
+    This command will start all the services (web, nginx, db, redis, celery_worker, celery_beat) in detached mode.
     ```bash
-    docker-compose up -d
+    docker-compose -f docker-compose.full.yml up -d
     ```
 
 5.  **Run Database Migrations (inside the Docker container):**
@@ -107,31 +108,76 @@ This section outlines how to deploy the application using Docker Compose, which 
     docker-compose exec web python manage.py createsuperuser
     ```
 
+### Worker-Only Node Deployment
+
+For each additional monitoring node you want to deploy:
+
+1.  **Navigate to the project root directory on your Worker-Only Node:**
+    ```bash
+    cd /path/to/your/ifuptime.com
+    ```
+
+2.  **Create a `.env` file:**
+    Create a file named `.env` in the project root directory with the following content. **Replace the placeholder values** with your actual MySQL root password, a strong Django secret key, and the node-specific information.
+    ```env
+    MYSQL_ROOT_PASSWORD=your_mysql_root_password # Must match master node's MySQL root password
+    MYSQL_DATABASE=ifuptime
+    MYSQL_USER=root
+    MYSQL_PASSWORD=
+    DJANGO_SECRET_KEY=your_django_secret_key_here # Can be the same as master, or a different one
+
+    # Master Node Database and Redis Connection (IMPORTANT: Replace with the actual IP address/hostname of your master node)
+    MYSQL_HOST=your_master_node_ip_or_hostname
+    MYSQL_PORT=3306
+    CELERY_BROKER_URL=redis://your_master_node_ip_or_hostname:6379/0
+    CELERY_RESULT_BACKEND=redis://your_master_node_ip_or_hostname:6379/0
+
+    # Monitoring Node Configuration (IMPORTANT: Set unique values for each deployment node)
+    MONITORING_NODE_NAME=your_node_name_here # e.g., Beijing-Node-02, Tokyo-Node-03
+    MONITORING_NODE_LOCATION=your_node_location_here # e.g., Beijing, Tokyo
+    ```
+    *   **`MYSQL_HOST`**: The IP address or hostname of your master node where MySQL is running.
+    *   **`CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND`**: The URL for Redis on your master node.
+    *   **`MONITORING_NODE_NAME`**: A unique name for this specific monitoring node. This will be used to identify the node in the admin panel and in monitor logs.
+    *   **`MONITORING_NODE_LOCATION`**: The geographical location of this node.
+
+3.  **Build Docker Images:**
+    This command will build the Docker images for your `celery_worker` service based on the `Dockerfile`.
+    ```bash
+    docker-compose -f docker-compose.worker-only.yml build
+    ```
+
+4.  **Start Worker-Only Services:**
+    This command will start the `celery_worker` service in detached mode.
+    ```bash
+    docker-compose -f docker-compose.worker-only.yml up -d
+    ```
+
 ### Managing Services
 
-*   **Stop all services:**
+*   **Stop full services (Master Node):**
     ```bash
-    docker-compose down
+    docker-compose -f docker-compose.full.yml down -v
     ```
-*   **Stop and remove containers, networks, and volumes:**
+*   **Stop worker-only services (Worker-Only Node):**
     ```bash
-    docker-compose down -v
+    docker-compose -f docker-compose.worker-only.yml down -v
     ```
-*   **View logs for all services:**
+*   **View logs for full services:**
     ```bash
-    docker-compose logs -f
+    docker-compose -f docker-compose.full.yml logs -f
     ```
-*   **View logs for a specific service (e.g., `web`):**
+*   **View logs for worker-only services:**
     ```bash
-    docker-compose logs -f web
+    docker-compose -f docker-compose.worker-only.yml logs -f
     ```
 
 ### Accessing the Application
 
-By default, Nginx is configured to listen on port 80 and serve the application for `ifuptime.com` and `www.ifuptime.com`.
+By default, Nginx on the master node is configured to listen on port 80 and serve the application for `ifuptime.com` and `www.ifuptime.com`.
 
-*   **DNS Configuration:** You need to configure your domain's DNS records (or your local `hosts` file for testing) to point `ifuptime.com` and `www.ifuptime.com` to the IP address of the server where Docker is running.
-*   **Firewall:** Ensure that port 80 (HTTP) is open in your server's firewall.
+*   **DNS Configuration:** You need to configure your domain's DNS records (or your local `hosts` file for testing) to point `ifuptime.com` and `www.ifuptime.com` to the IP address of your master node.
+*   **Firewall:** Ensure that port 80 (HTTP), 3306 (MySQL), and 6379 (Redis) are open on your master node for external access from worker-only nodes.
 
 Once DNS is propagated and services are running, you can access your application by navigating to `http://ifuptime.com` in your web browser.
 

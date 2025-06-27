@@ -1,3 +1,4 @@
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
@@ -33,6 +34,7 @@ class Monitor(models.Model):
         ('http', 'HTTP(s)存活检测'),
         ('keyword', '关键字检测'),
         ('api', 'API检测'),
+        ('ssl', 'SSL证书检测'), # New choice
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
@@ -67,6 +69,11 @@ class ApiMonitor(models.Model):
     expected_status_code = models.PositiveIntegerField(default=200)
     response_keyword = models.CharField(max_length=255, blank=True, null=True)
 
+class SslMonitor(models.Model):
+    monitor = models.OneToOneField(Monitor, on_delete=models.CASCADE, primary_key=True)
+    # No specific fields needed here for now, as target URL is in Monitor
+    # We might add fields like expected_issuer, expected_subject if needed later
+
 class MonitorLog(models.Model):
     monitor = models.ForeignKey(Monitor, on_delete=models.CASCADE)
     node_name = models.CharField(max_length=255, blank=True, null=True) # New field to store node name
@@ -75,6 +82,10 @@ class MonitorLog(models.Model):
     response_time = models.FloatField() # in milliseconds
     status_code = models.PositiveIntegerField(null=True, blank=True)
     response_content = models.TextField(blank=True, null=True)
+    # New fields for SSL monitoring
+    ssl_valid_to = models.DateTimeField(null=True, blank=True)
+    ssl_days_remaining = models.IntegerField(null=True, blank=True)
+    ssl_error = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.monitor.name} - {'Up' if self.is_up else 'Down'} at {self.timestamp}"

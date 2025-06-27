@@ -30,11 +30,13 @@ services:
       - db_data:/var/lib/mysql
     env_file:
       - .env
+    ports:
+      - "3306:3306" # Expose MySQL port for external access
 
   redis:
     image: redis:latest
     ports:
-      - "6379:6379"
+      - "6379:6379" # Expose Redis port for external access
 
   celery_worker:
     build: .
