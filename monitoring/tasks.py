@@ -12,6 +12,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.db.models import Count, Avg, Max, Min
+from celery.exceptions import MaxRetriesExceededError
 
 # Import run_monitor_check_async locally within the task to avoid circular import
 # from .utils import run_monitor_check_async # REMOVED TO AVOID CIRCULAR IMPORT
@@ -110,8 +111,8 @@ def send_heartbeat():
     except Exception as e:
         print(f"Error sending heartbeat from node {node_name}: {e}")
 
-@shared_task
-def send_monitor_down_email(monitor_id, log_id):
+@shared_task(bind=True, default_retry_delay=300, max_retries=5) # Retry after 5 minutes, up to 5 times
+def send_monitor_down_email(self, monitor_id, log_id):
     try:
         monitor = Monitor.objects.get(id=monitor_id)
         log = MonitorLog.objects.get(id=log_id)
@@ -140,12 +141,14 @@ def send_monitor_down_email(monitor_id, log_id):
         msg.send()
         print(f"Sent downtime notification email for {monitor.name} to {user.email}")
 
-    except Monitor.DoesNotExist:
-        print(f"Monitor {monitor_id} not found for email notification.")
-    except MonitorLog.DoesNotExist:
-        print(f"MonitorLog {log_id} not found for email notification.")
+    except (Monitor.DoesNotExist, MonitorLog.DoesNotExist) as e:
+        print(f"Data not found for email notification: {e}")
     except Exception as e:
         print(f"Error sending email for monitor {monitor_id}: {e}")
+        try:
+            self.retry(exc=e) # Retry the task
+        except MaxRetriesExceededError:
+            print(f"Max retries exceeded for email to {user.email} for monitor {monitor_id}.")
 
 @shared_task
 def send_daily_report_emails():
@@ -168,7 +171,7 @@ def send_daily_report_emails():
             if logs_for_monitor.exists():
                 total_checks = logs_for_monitor.count()
                 up_count = logs_for_monitor.filter(is_up=True).count()
-                down_count = total_for_monitor - up_count
+                down_count = total_checks - up_count
                 
                 # Filter out logs with response_time = 0.0 for accurate min/max/avg
                 valid_response_times = logs_for_monitor.exclude(response_time=0.0)
@@ -208,3 +211,33 @@ def send_daily_report_emails():
             print(f"Sent daily report email to {user.email} for {yesterday.strftime('%Y-%m-%d')}")
         else:
             print(f"No report data for {user.email} for {yesterday.strftime('%Y-%m-%d')}. Skipping email.")
+
+@shared_task(bind=True, default_retry_delay=60, max_retries=3) # Retry after 1 minute, up to 3 times
+def send_test_email(self, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        subject = "Test Email from ifuptime.com"
+        from_email = settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@ifuptime.com'
+        to_email = user.email
+
+        context = {
+            'user': user,
+            'current_year': datetime.now().year,
+        }
+
+        html_content = render_to_string('email/test_email.html', context)
+        text_content = strip_tags(html_content)
+
+        msg = EmailMultiAlternatives(subject, text_content, from_email, [to_email])
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+        print(f"Sent test email to {user.email}")
+
+    except User.DoesNotExist:
+        print(f"User {user_id} not found for test email.")
+    except Exception as e:
+        print(f"Error sending test email to {user_id}: {e}")
+        try:
+            self.retry(exc=e)
+        except MaxRetriesExceededError:
+            print(f"Max retries exceeded for test email to {user_id}.")

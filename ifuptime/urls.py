@@ -1,4 +1,3 @@
-
 """
 URL configuration for ifuptime project.
 
@@ -31,5 +30,6 @@ urlpatterns = [
     path('monitor/<int:monitor_id>/edit/', views.monitor_edit_view, name='monitor_edit'),
     path('monitor/<int:monitor_id>/delete/', views.monitor_delete_view, name='monitor_delete'),
     path('settings/', views.user_settings_view, name='user_settings'),
+    path('settings/send_test_email/', views.send_test_email_view, name='send_test_email'), # New URL for test email
     path('', views.homepage_view, name='home'), # Set homepage_view as the root URL
 ]

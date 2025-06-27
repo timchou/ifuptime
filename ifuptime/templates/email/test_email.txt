@@ -1,0 +1,13 @@
+Test Email from ifuptime.com
+
+Dear {{ user.username }},
+
+This is a test email from ifuptime.com to confirm that your email settings are working correctly.
+
+If you received this email, it means our system can successfully send emails to your address ({{ user.email }}).
+
+Thank you for using ifuptime.com!
+
+This is an automated notification. Please do not reply to this email.
+
+© {{ current_year }} ifuptime.com. All rights reserved.

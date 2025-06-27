@@ -1,4 +1,3 @@
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
@@ -6,7 +5,7 @@ from .forms import UserRegisterForm
 from django.contrib.auth.decorators import login_required
 from .models import Monitor, HttpMonitor, KeywordMonitor, ApiMonitor, MonitorLog, SslMonitor
 from .utils import run_monitor_check_async
-from .tasks import perform_monitor_check
+from .tasks import perform_monitor_check, send_test_email # Import send_test_email
 from django_celery_beat.models import PeriodicTask, IntervalSchedule
 import json
 from datetime import datetime
@@ -272,9 +271,16 @@ def user_settings_view(request):
     if request.method == 'POST':
         user.is_send_daily_report = request.POST.get('is_send_daily_report') == 'on'
         user.save()
-        # Optionally add a success message
+        messages.success(request, "Your settings have been updated successfully!") # Add success message
         return redirect('user_settings')
     context = {
         'user': user
     }
     return render(request, 'user_settings.html', context)
+
+@login_required
+def send_test_email_view(request):
+    if request.method == 'POST':
+        send_test_email.delay(request.user.id)
+        messages.info(request, "Test email has been sent. Please check your inbox (and spam folder).")
+    return redirect('user_settings')
