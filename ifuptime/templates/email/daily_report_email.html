@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Monitoring Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { width: 80%; margin: 20px auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
+        .header { background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; }
+        .footer { text-align: center; font-size: 0.8em; color: #777; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .status-up { color: green; font-weight: bold; }
+        .status-down { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Daily Monitoring Report - {{ report_date }}</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ user.username }},</p>
+            <p>Here is your daily monitoring report for **{{ report_date }}**:</p>
+
+            {% if report_data %}
+                {% for monitor_name, data in report_data.items %}
+                    <h3>Monitor: {{ monitor_name }}</h3>
+                    <table>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                        <tr>
+                            <td>Total Checks</td>
+                            <td>{{ data.total_checks }}</td>
+                        </tr>
+                        <tr>
+                            <td>Up Status Count</td>
+                            <td><span class="status-up">{{ data.up_count }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>Down Status Count</td>
+                            <td><span class="status-down">{{ data.down_count }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>Max Response Time</td>
+                            <td>{{ data.max_response_time|floatformat:2 }} ms</td>
+                        </tr>
+                        <tr>
+                            <td>Min Response Time</td>
+                            <td>{{ data.min_response_time|floatformat:2 }} ms</td>
+                        </tr>
+                        <tr>
+                            <td>Average Response Time</td>
+                            <td>{{ data.avg_response_time|floatformat:2 }} ms</td>
+                        </tr>
+                    </table>
+                    <br>
+                {% endfor %}
+            {% else %}
+                <p>No monitoring data available for your monitors for {{ report_date }}.</p>
+            {% endif %}
+
+            <p>You can manage your monitoring settings and view detailed logs on your dashboard:</p>
+            <p style="text-align: center; margin-top: 30px;">
+                <a href="{{ site_url }}{% url 'dashboard' %}" class="button">Go to Dashboard</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>This is an automated notification. Please do not reply to this email.</p>
+            <p>&copy; {{ current_year }} ifuptime.com. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

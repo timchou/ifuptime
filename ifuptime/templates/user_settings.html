@@ -1,0 +1,29 @@
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}User Settings{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <div class="slim-pageheader">
+            <ol class="breadcrumb slim-breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Settings</li>
+            </ol>
+            <h6 class="slim-pagetitle">User Settings</h6>
+        </div><!-- slim-pageheader -->
+
+        <div class="card card-body mg-t-20">
+            <h5 class="card-title">Email Preferences</h5>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="is_send_daily_report" name="is_send_daily_report" {% if user.is_send_daily_report %}checked{% endif %}>
+                    <label class="form-check-label" for="is_send_daily_report">Receive daily monitoring reports</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

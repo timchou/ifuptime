@@ -1,10 +1,10 @@
-
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
+    is_send_daily_report = models.BooleanField(default=False, help_text="Whether to send daily monitoring reports to this user.")
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 

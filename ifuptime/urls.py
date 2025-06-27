@@ -1,3 +1,4 @@
+
 """
 URL configuration for ifuptime project.
 
@@ -23,11 +24,12 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
-    path('dashboard/', views.dashboard_view, name='dashboard'), # Placeholder for dashboard
+    path('dashboard/', views.dashboard_view, name='dashboard'),
     path('monitor/create/', views.monitor_create_view, name='monitor_create'),
     path('monitor/<int:monitor_id>/run_check/', views.run_check_view, name='run_check'),
     path('monitor/<int:monitor_id>/', views.monitor_detail_view, name='monitor_detail'),
     path('monitor/<int:monitor_id>/edit/', views.monitor_edit_view, name='monitor_edit'),
     path('monitor/<int:monitor_id>/delete/', views.monitor_delete_view, name='monitor_delete'),
-    path('', views.login_view, name='home'), # Default to login page
+    path('settings/', views.user_settings_view, name='user_settings'),
+    path('', views.homepage_view, name='home'), # Set homepage_view as the root URL
 ]

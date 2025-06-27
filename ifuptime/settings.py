@@ -1,3 +1,4 @@
+
 """
 Django settings for ifuptime project.
 
@@ -67,6 +68,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'ifuptime.context_processors.recent_monitor_logs', # New context processor
             ],
         },
     },

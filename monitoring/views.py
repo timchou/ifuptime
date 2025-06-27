@@ -12,6 +12,9 @@ import json
 from datetime import datetime
 from django.db.models import Q
 
+def homepage_view(request):
+    return render(request, 'homepage.html')
+
 def register_view(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
@@ -112,6 +115,14 @@ def monitor_create_view(request):
             )
 
         # Schedule the task with Celery Beat
+        periodic_task_name = f'Monitor Check for {monitor.name} (ID: {monitor.id})'
+        # Check if a task with this name already exists and delete it if so
+        try:
+            existing_task = PeriodicTask.objects.get(name=periodic_task_name)
+            existing_task.delete()
+        except PeriodicTask.DoesNotExist:
+            pass
+
         schedule, created = IntervalSchedule.objects.get_or_create(
             every=frequency,
             period=IntervalSchedule.SECONDS,
@@ -119,7 +130,7 @@ def monitor_create_view(request):
 
         PeriodicTask.objects.create(
             interval=schedule, # we set interval here
-            name=f'Monitor Check for {monitor.name} (ID: {monitor.id})',
+            name=periodic_task_name,
             task='monitoring.tasks.perform_monitor_check',
             args=json.dumps([monitor.id]),
             start_time=datetime.now()
@@ -241,3 +252,16 @@ def monitor_delete_view(request, monitor_id):
         'monitor': monitor
     }
     return render(request, 'monitor_confirm_delete.html', context)
+
+@login_required
+def user_settings_view(request):
+    user = request.user
+    if request.method == 'POST':
+        user.is_send_daily_report = request.POST.get('is_send_daily_report') == 'on'
+        user.save()
+        # Optionally add a success message
+        return redirect('user_settings')
+    context = {
+        'user': user
+    }
+    return render(request, 'user_settings.html', context)

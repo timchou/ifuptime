@@ -1,0 +1,27 @@
+Daily Monitoring Report - {{ report_date }}
+
+Dear {{ user.username }},
+
+Here is your daily monitoring report for {{ report_date }}:
+
+{% if report_data %}
+    {% for monitor_name, data in report_data.items %}
+Monitor: {{ monitor_name }}
+    Total Checks: {{ data.total_checks }}
+    Up Status Count: {{ data.up_count }}
+    Down Status Count: {{ data.down_count }}
+    Max Response Time: {{ data.max_response_time|floatformat:2 }} ms
+    Min Response Time: {{ data.min_response_time|floatformat:2 }} ms
+    Average Response Time: {{ data.avg_response_time|floatformat:2 }} ms
+
+    {% endfor %}
+{% else %}
+No monitoring data available for your monitors for {{ report_date }}.
+{% endif %}
+
+You can manage your monitoring settings and view detailed logs on your dashboard:
+{{ site_url }}{% url 'dashboard' %}
+
+This is an automated notification. Please do not reply to this email.
+
+© {{ current_year }} ifuptime.com. All rights reserved.

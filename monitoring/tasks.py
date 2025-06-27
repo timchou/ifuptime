@@ -1,9 +1,10 @@
+
 from celery import shared_task
 import asyncio
 import json
 from django.conf import settings
 import redis
-from .models import MonitorLog, Monitor, Node
+from .models import MonitorLog, Monitor, Node, User
 from datetime import timedelta
 from django.utils import timezone
 import os
@@ -11,6 +12,7 @@ import socket
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from django.db.models import Count, Avg, Max, Min
 
 # Import run_monitor_check_async locally within the task to avoid circular import
 # from .utils import run_monitor_check_async # REMOVED TO AVOID CIRCULAR IMPORT
@@ -139,3 +141,65 @@ def send_monitor_down_email(monitor_id, log_id):
         print(f"MonitorLog {log_id} not found for email notification.")
     except Exception as e:
         print(f"Error sending email for monitor {monitor_id}: {e}")
+
+@shared_task
+def send_daily_report_emails():
+    yesterday = timezone.now().date() - timedelta(days=1)
+    start_of_yesterday = timezone.make_aware(datetime.combine(yesterday, datetime.min.time()))
+    end_of_yesterday = timezone.make_aware(datetime.combine(yesterday, datetime.max.time()))
+
+    users_to_report = User.objects.filter(is_send_daily_report=True)
+
+    for user in users_to_report:
+        user_monitors = Monitor.objects.filter(user=user)
+        report_data = {}
+
+        for monitor in user_monitors:
+            logs_for_monitor = MonitorLog.objects.filter(
+                monitor=monitor,
+                timestamp__range=(start_of_yesterday, end_of_yesterday)
+            )
+
+            if logs_for_monitor.exists():
+                total_checks = logs_for_monitor.count()
+                up_count = logs_for_monitor.filter(is_up=True).count()
+                down_count = total_checks - up_count
+                
+                # Filter out logs with response_time = 0.0 for accurate min/max/avg
+                valid_response_times = logs_for_monitor.exclude(response_time=0.0)
+
+                max_response_time = valid_response_times.aggregate(Max('response_time'))['response_time__max'] or 0.0
+                min_response_time = valid_response_times.aggregate(Min('response_time'))['response_time__min'] or 0.0
+                avg_response_time = valid_response_times.aggregate(Avg('response_time'))['response_time__avg'] or 0.0
+
+                report_data[monitor.name] = {
+                    'total_checks': total_checks,
+                    'up_count': up_count,
+                    'down_count': down_count,
+                    'max_response_time': max_response_time,
+                    'min_response_time': min_response_time,
+                    'avg_response_time': avg_response_time,
+                }
+
+        if report_data:
+            subject = f"Daily Monitoring Report for {yesterday.strftime('%Y-%m-%d')}"
+            from_email = settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@ifuptime.com'
+            to_email = user.email
+
+            context = {
+                'user': user,
+                'report_date': yesterday.strftime('%Y-%m-%d'),
+                'report_data': report_data,
+                'site_url': 'http://ifuptime.com', # Replace with your actual site URL
+                'current_year': datetime.now().year,
+            }
+
+            html_content = render_to_string('email/daily_report_email.html', context)
+            text_content = strip_tags(html_content)
+
+            msg = EmailMultiAlternatives(subject, text_content, from_email, [to_email])
+            msg.attach_alternative(html_content, "text/html")
+            msg.send()
+            print(f"Sent daily report email to {user.email} for {yesterday.strftime('%Y-%m-%d')}")
+        else:
+            print(f"No report data for {user.email} for {yesterday.strftime('%Y-%m-%d')}. Skipping email.")

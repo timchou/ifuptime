@@ -1,3 +1,4 @@
+
 import os
 from celery import Celery
 from celery.schedules import crontab
@@ -32,5 +33,9 @@ app.conf.beat_schedule = {
     'send-heartbeat-every-minute': {
         'task': 'monitoring.tasks.send_heartbeat',
         'schedule': crontab(minute='*/1'), # Run every minute
+    },
+    'send-daily-report-emails-early-morning': {
+        'task': 'monitoring.tasks.send_daily_report_emails',
+        'schedule': crontab(hour=1, minute=0), # Run daily at 1 AM
     },
 }
