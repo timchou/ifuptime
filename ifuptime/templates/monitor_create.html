@@ -1,3 +1,4 @@
+
 {% extends 'base.html' %}
 {% load static %}
 
@@ -6,6 +7,16 @@
 {% block content %}
     <div class="container mt-5">
         <h1>Create New Monitor</h1>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-danger" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <p class="text-muted">You have {{ active_monitor_count }} active monitors out of {{ max_monitors }} allowed.</p>
+
         <form method="post" id="monitor-form">
             {% csrf_token %}
             <div class="mb-3">
@@ -14,13 +25,27 @@
             </div>
             <div class="mb-3">
                 <label for="monitor_type" class="form-label">Monitor Type</label>
-                <select class="form-select" id="monitor_type" name="monitor_type" required>
+                <select class="form-select form-control" id="monitor_type" name="monitor_type" required>
                     <option value="">Select a type</option>
                     <option value="http">HTTP(s)存活检测</option>
                     <option value="keyword">关键字检测</option>
                     <option value="api">API检测</option>
                     <option value="ssl">SSL证书检测</option>
                 </select>
+                <div id="monitor-type-description" class="mt-2 text-muted">
+                    <div id="http-description" class="type-description" style="display: none;">
+                        对目标URL进行HTTP(s)请求，检查HTTP状态码是否符合预期，判断网站是否可访问。
+                    </div>
+                    <div id="keyword-description" class="type-description" style="display: none;">
+                        对目标URL进行HTTP(s)请求，除了检查HTTP状态码，还会检查页面内容是否包含指定关键字。
+                    </div>
+                    <div id="api-description" class="type-description" style="display: none;">
+                        对目标API进行GET或POST请求，支持自定义HTTP Header和Body数据，检查HTTP状态码和返回内容是否符合预期。
+                    </div>
+                    <div id="ssl-description" class="type-description" style="display: none;">
+                        检测目标HTTPS网站的SSL证书是否有效，并获取证书的过期时间。如果证书在7天内过期，将触发提醒。
+                    </div>
+                </div>
             </div>
             <div class="mb-3">
                 <label for="target" class="form-label">Target (URL or API Endpoint)</label>
@@ -28,7 +53,14 @@
             </div>
             <div class="mb-3">
                 <label for="frequency" class="form-label">Frequency (seconds)</label>
-                <input type="number" class="form-control" id="frequency" name="frequency" value="60" min="10" required>
+                <select class="form-select form-control" id="frequency" name="frequency" required>
+                    {% if min_frequency_minutes <= 5 %}<option value="300">5 minutes</option>{% endif %}
+                    {% if min_frequency_minutes <= 10 %}<option value="600">10 minutes</option>{% endif %}
+                    <option value="3600">1 hour</option>
+                    <option value="43200">12 hours</option>
+                    <option value="86400">24 hours</option>
+                </select>
+                <small class="form-text text-muted">Minimum frequency for your account type is {{ min_frequency_minutes }} minutes.</small>
             </div>
 
             <!-- HTTP Monitor Fields -->
@@ -92,6 +124,23 @@
     {{ block.super }} {# Keep scripts from base.html #}
     <script>
         $(document).ready(function() {
+            function showMonitorTypeDescription() {
+                $('.type-description').hide();
+                var selectedType = $('#monitor_type').val();
+                if (selectedType === 'http') {
+                    $('#http-description').show();
+                } else if (selectedType === 'keyword') {
+                    $('#keyword-description').show();
+                } else if (selectedType === 'api') {
+                    $('#api-description').show();
+                } else if (selectedType === 'ssl') {
+                    $('#ssl-description').show();
+                }
+            }
+
+            // Initial call to show description based on default selected value (if any)
+            showMonitorTypeDescription();
+
             $('#monitor_type').change(function() {
                 $('.monitor-type-fields').hide();
                 var selectedType = $(this).val();
@@ -104,6 +153,7 @@
                 } else if (selectedType === 'ssl') {
                     $('#ssl-fields').show();
                 }
+                showMonitorTypeDescription(); // Update description on change
             });
         });
     </script>

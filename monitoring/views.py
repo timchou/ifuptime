@@ -1,3 +1,4 @@
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
@@ -10,6 +11,7 @@ from django_celery_beat.models import PeriodicTask, IntervalSchedule
 import json
 from datetime import datetime
 from django.db.models import Q
+from django.contrib import messages
 
 def homepage_view(request):
     return render(request, 'homepage.html')
@@ -50,18 +52,37 @@ def dashboard_view(request):
     if query:
         monitors = monitors.filter(Q(name__icontains=query) | Q(target__icontains=query))
 
+    # Attach last log to each monitor
+    for monitor in monitors:
+        monitor.last_log = MonitorLog.objects.filter(monitor=monitor).order_by('-timestamp').first()
+
     context = {
-        'monitors': monitors
+        'monitors': monitors,
+        'active_monitor_count': Monitor.objects.filter(user=request.user, is_active=True).count(),
+        'max_monitors': request.user.max_monitors,
     }
     return render(request, 'dashboard.html', context)
 
 @login_required
 def monitor_create_view(request):
+    user = request.user
+    active_monitor_count = Monitor.objects.filter(user=user, is_active=True).count()
+
     if request.method == 'POST':
+        # Check monitor limit
+        if active_monitor_count >= user.max_monitors:
+            messages.error(request, f"You have reached your limit of {user.max_monitors} active monitors.")
+            return redirect('monitor_create')
+
         name = request.POST.get('name')
         monitor_type = request.POST.get('monitor_type')
         target = request.POST.get('target')
         frequency = int(request.POST.get('frequency')) # Convert to int
+
+        # Check frequency limit
+        if frequency < user.min_frequency:
+            messages.error(request, f"Minimum frequency for your account type is {user.min_frequency / 60} minutes.")
+            return redirect('monitor_create')
 
         monitor = Monitor.objects.create(
             user=request.user,
@@ -140,7 +161,13 @@ def monitor_create_view(request):
         )
 
         return redirect('dashboard')
-    return render(request, 'monitor_create.html')
+    context = {
+        'min_frequency': user.min_frequency,
+        'min_frequency_minutes': user.min_frequency / 60, # Calculate minutes here
+        'max_monitors': user.max_monitors,
+        'active_monitor_count': active_monitor_count,
+    }
+    return render(request, 'monitor_create.html', context)
 
 @login_required
 def run_check_view(request, monitor_id):
@@ -182,11 +209,20 @@ def monitor_edit_view(request, monitor_id):
     elif monitor.monitor_type == 'ssl':
         monitor_details = SslMonitor.objects.get(monitor=monitor)
 
+    user = request.user
+
     if request.method == 'POST':
         monitor.name = request.POST.get('name')
         monitor.target = request.POST.get('target')
-        monitor.frequency = int(request.POST.get('frequency'))
-        monitor.is_active = bool(request.POST.get('is_active')) # Handle checkbox
+        new_frequency = int(request.POST.get('frequency'))
+
+        # Check frequency limit on edit
+        if new_frequency < user.min_frequency:
+            messages.error(request, f"Minimum frequency for your account type is {user.min_frequency / 60} minutes.")
+            return redirect('monitor_edit', monitor_id=monitor.id)
+
+        monitor.frequency = new_frequency
+        monitor.is_active = request.POST.get('is_active') == 'on' # Handle checkbox
         monitor.save()
 
         # No specific fields to save for SslMonitor yet, but keep the structure
@@ -207,6 +243,8 @@ def monitor_edit_view(request, monitor_id):
     context = {
         'monitor': monitor,
         'monitor_details': monitor_details,
+        'min_frequency': user.min_frequency,
+        'min_frequency_minutes': user.min_frequency / 60, # Calculate minutes here
     }
     return render(request, 'monitor_edit.html', context)
 

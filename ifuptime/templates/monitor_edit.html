@@ -1,3 +1,4 @@
+
 {% extends 'base.html' %}
 {% load static %}
 
@@ -13,6 +14,14 @@
             </ol>
             <h6 class="slim-pagetitle">Edit Monitor: {{ monitor.name }}</h6>
         </div><!-- slim-pageheader -->
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-danger" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
 
         <form method="post" id="monitor-form">
             {% csrf_token %}
@@ -36,7 +45,14 @@
             </div>
             <div class="mb-3">
                 <label for="frequency" class="form-label">Frequency (seconds)</label>
-                <input type="number" class="form-control" id="frequency" name="frequency" value="{{ monitor.frequency }}" min="10" required>
+                <select class="form-select form-control" id="frequency" name="frequency" required>
+                    {% if min_frequency_minutes <= 5 %}<option value="300" {% if monitor.frequency == 300 %}selected{% endif %}>5 minutes</option>{% endif %}
+                    {% if min_frequency_minutes <= 10 %}<option value="600" {% if monitor.frequency == 600 %}selected{% endif %}>10 minutes</option>{% endif %}
+                    <option value="3600" {% if monitor.frequency == 3600 %}selected{% endif %}>1 hour</option>
+                    <option value="43200" {% if monitor.frequency == 43200 %}selected{% endif %}>12 hours</option>
+                    <option value="86400" {% if monitor.frequency == 86400 %}selected{% endif %}>24 hours</option>
+                </select>
+                <small class="form-text text-muted">Minimum frequency for your account type is {{ min_frequency_minutes }} minutes.</small>
             </div>
             <div class="mb-3 form-check">
                 <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if monitor.is_active %}checked{% endif %}>
@@ -59,7 +75,7 @@
                 </div>
                 <div class="mb-3">
                     <label for="keyword_expected_status_code" class="form-label">Expected HTTP Status Code</label>
-                    <input type="number" class="form-control" id="keyword_expected_status_code" name="keyword_expected_status_code" value="{{ monitor_details.expected_status_code|default:200 }}">
+                    <input type="number" class="form-control" id="keyword_expected_status_code" name="keyword_expected_status_code" value="200">
                 </div>
             </div>
 
@@ -67,7 +83,7 @@
             <div id="api-fields" class="monitor-type-fields" {% if monitor.monitor_type != 'api' %}style="display: none;"{% endif %}>
                 <div class="mb-3">
                     <label for="api_method" class="form-label">HTTP Method</label>
-                    <select class="form-select" id="api_method" name="api_method">
+                    <select class="form-select form-control" id="api_method" name="api_method">
                         <option value="GET" {% if monitor_details.method == 'GET' %}selected{% endif %}>GET</option>
                         <option value="POST" {% if monitor_details.method == 'POST' %}selected{% endif %}>POST</option>
                     </select>

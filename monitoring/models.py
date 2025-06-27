@@ -4,10 +4,23 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
 class User(AbstractUser):
+    USER_TYPE_CHOICES = [
+        ('normal', 'Normal User'),
+        ('pro', 'Pro User'),
+    ]
     email = models.EmailField(unique=True)
     is_send_daily_report = models.BooleanField(default=False, help_text="Whether to send daily monitoring reports to this user.")
+    user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='normal', help_text="Type of user, affecting monitoring limits.")
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
+
+    @property
+    def max_monitors(self):
+        return 200 if self.user_type == 'pro' else 10
+
+    @property
+    def min_frequency(self):
+        return 300 if self.user_type == 'pro' else 600 # 5 minutes for pro, 10 minutes for normal
 
 class Node(models.Model):
     name = models.CharField(max_length=255, unique=True, help_text="Unique name for this monitoring node (e.g., Shanghai-Node-01)")
@@ -36,11 +49,20 @@ class Monitor(models.Model):
         ('api', 'API检测'),
         ('ssl', 'SSL证书检测'), # New choice
     ]
+    
+    FREQUENCY_CHOICES = [
+        (300, '5 minutes'),
+        (600, '10 minutes'), # New frequency option
+        (3600, '1 hour'),
+        (43200, '12 hours'),
+        (86400, '24 hours'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     monitor_type = models.CharField(max_length=10, choices=MONITOR_TYPE_CHOICES)
     target = models.CharField(max_length=2083) # URL or API endpoint
-    frequency = models.PositiveIntegerField(default=60) # in seconds
+    frequency = models.PositiveIntegerField(choices=FREQUENCY_CHOICES, default=300) # in seconds
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -8,6 +8,8 @@
         <h1>Welcome to your Dashboard, {{ user.username }}!</h1>
         <p>This is your monitoring dashboard. Here are your monitors:</p>
 
+        <p class="text-muted">You have {{ active_monitor_count }} active monitors out of {{ max_monitors }} allowed.</p>
+
         <a href="{% url 'monitor_create' %}" class="btn btn-primary mb-3">Create New Monitor</a>
 
         {% if monitors %}
@@ -19,7 +21,7 @@
                         <th>Target</th>
                         <th>Frequency (s)</th>
                         <th>Active</th>
-                        <th>Created At</th>
+                        <th>Last Check</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -29,9 +31,20 @@
                             <td>{{ monitor.name }}</td>
                             <td>{{ monitor.get_monitor_type_display }}</td>
                             <td>{{ monitor.target }}</td>
-                            <td>{{ monitor.frequency }}</td>
+                            <td>{{ monitor.get_frequency_display }}</td> {# Use get_frequency_display #}
                             <td>{% if monitor.is_active %}Yes{% else %}No{% endif %}</td>
-                            <td>{{ monitor.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                {% if monitor.last_log %}
+                                    {% if monitor.last_log.is_up %}
+                                        <span class="badge badge-success">Up</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">Down</span>
+                                    {% endif %}
+                                    <div style="font-size:12px;">{{ monitor.last_log.timestamp|date:"Y-m-d H:i:s" }}</div>
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
                             <td>
                                 <a href="{% url 'run_check' monitor.id %}" class="btn btn-sm btn-success">Run Check</a>
                                 <a href="{% url 'monitor_detail' monitor.id %}" class="btn btn-sm btn-info">View</a>
