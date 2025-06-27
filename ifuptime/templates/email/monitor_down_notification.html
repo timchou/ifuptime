@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Down Notification</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { width: 80%; margin: 20px auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
+        .header { background-color: #f44336; color: white; padding: 10px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; }
+        .footer { text-align: center; font-size: 0.8em; color: #777; margin-top: 20px; }
+        .button { display: inline-block; background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Monitor Alert: {{ monitor.name }} is Down!</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ user.username }},</p>
+            <p>We regret to inform you that your monitor **{{ monitor.name }}** ({{ monitor.target }}) is currently experiencing issues.</p>
+            <p><strong>Details:</strong></p>
+            <ul>
+                <li><strong>Monitor Name:</strong> {{ monitor.name }}</li>
+                <li><strong>Target URL/API:</strong> {{ monitor.target }}</li>
+                <li><strong>Monitor Type:</strong> {{ monitor.get_monitor_type_display }}</li>
+                <li><strong>Issue Detected At:</strong> {{ log.timestamp|date:"Y-m-d H:i:s T" }}</li>
+                <li><strong>Status:</strong> {% if log.is_up %}Up{% else %}Down{% endif %}</li>
+                <li><strong>Response Time:</strong> {{ log.response_time|floatformat:2 }} ms</li>
+                <li><strong>Status Code:</strong> {{ log.status_code|default_if_none:"N/A" }}</li>
+                <li><strong>Node:</strong> {{ log.node_name|default_if_none:"N/A" }}</li>
+            </ul>
+            <p>Please log in to your dashboard for more details and to investigate the issue.</p>
+            <p style="text-align: center; margin-top: 30px;">
+                <a href="{{ site_url }}{% url 'monitor_detail' monitor.id %}" class="button">View Monitor Details</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>This is an automated notification. Please do not reply to this email.</p>
+            <p>&copy; {{ current_year }} ifuptime.com. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

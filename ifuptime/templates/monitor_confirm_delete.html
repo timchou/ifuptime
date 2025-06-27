@@ -1,0 +1,31 @@
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Confirm Delete - {{ monitor.name }}{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <div class="slim-pageheader">
+            <ol class="breadcrumb slim-breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'monitor_detail' monitor.id %}">{{ monitor.name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Delete</li>
+            </ol>
+            <h6 class="slim-pagetitle">Confirm Delete: {{ monitor.name }}</h6>
+        </div><!-- slim-pageheader -->
+
+        <div class="card card-body mg-t-20">
+            <h5 class="card-title text-danger">Are you sure you want to delete this monitor?</h5>
+            <p><strong>Name:</strong> {{ monitor.name }}</p>
+            <p><strong>Target:</strong> {{ monitor.target }}</p>
+            <p class="text-danger">This action cannot be undone.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Delete</button>
+                <a href="{% url 'monitor_detail' monitor.id %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+{% endblock %}

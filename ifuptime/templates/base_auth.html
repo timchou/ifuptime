@@ -1,0 +1,27 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+    {{ block.super }}
+    <style>
+        /* Optional: Add custom styles for auth pages if needed */
+        body {
+            background-color: #f0f0f0; /* Light gray background for auth pages */
+        }
+        .slim-mainpanel {
+            padding-top: 50px; /* Adjust padding if header is removed */
+        }
+    </style>
+{% endblock %}
+
+{% block slim-header %}
+    {# Auth pages typically don't need the full header #}
+{% endblock %}
+
+{% block slim-navbar %}
+    {# Auth pages typically don't need the navigation bar #}
+{% endblock %}
+
+{% block content %}
+    {{ block.super }}
+{% endblock %}

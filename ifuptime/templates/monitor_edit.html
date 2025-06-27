@@ -1,0 +1,112 @@
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Monitor - {{ monitor.name }}{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <div class="slim-pageheader">
+            <ol class="breadcrumb slim-breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'monitor_detail' monitor.id %}">{{ monitor.name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            </ol>
+            <h6 class="slim-pagetitle">Edit Monitor: {{ monitor.name }}</h6>
+        </div><!-- slim-pageheader -->
+
+        <form method="post" id="monitor-form">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="name" class="form-label">Monitor Name</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ monitor.name }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="monitor_type" class="form-label">Monitor Type</label>
+                <select class="form-select" id="monitor_type" name="monitor_type" disabled>
+                    <option value="http" {% if monitor.monitor_type == 'http' %}selected{% endif %}>HTTP(s)存活检测</option>
+                    <option value="keyword" {% if monitor.monitor_type == 'keyword' %}selected{% endif %}>关键字检测</option>
+                    <option value="api" {% if monitor.monitor_type == 'api' %}selected{% endif %}>API检测</option>
+                </select>
+                <small class="form-text text-muted">Monitor type cannot be changed after creation.</small>
+            </div>
+            <div class="mb-3">
+                <label for="target" class="form-label">Target (URL or API Endpoint)</label>
+                <input type="url" class="form-control" id="target" name="target" value="{{ monitor.target }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="frequency" class="form-label">Frequency (seconds)</label>
+                <input type="number" class="form-control" id="frequency" name="frequency" value="{{ monitor.frequency }}" min="10" required>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if monitor.is_active %}checked{% endif %}>
+                <label class="form-check-label" for="is_active">Is Active</label>
+            </div>
+
+            <!-- HTTP Monitor Fields -->
+            <div id="http-fields" class="monitor-type-fields" {% if monitor.monitor_type != 'http' %}style="display: none;"{% endif %}>
+                <div class="mb-3">
+                    <label for="http_expected_status_code" class="form-label">Expected HTTP Status Code</label>
+                    <input type="number" class="form-control" id="http_expected_status_code" name="http_expected_status_code" value="{{ monitor_details.expected_status_code|default:200 }}">
+                </div>
+            </div>
+
+            <!-- Keyword Monitor Fields -->
+            <div id="keyword-fields" class="monitor-type-fields" {% if monitor.monitor_type != 'keyword' %}style="display: none;"{% endif %}>
+                <div class="mb-3">
+                    <label for="keyword" class="form-label">Keyword to find</label>
+                    <input type="text" class="form-control" id="keyword" name="keyword" value="{{ monitor_details.keyword|default:'' }}">
+                </div>
+                <div class="mb-3">
+                    <label for="keyword_expected_status_code" class="form-label">Expected HTTP Status Code</label>
+                    <input type="number" class="form-control" id="keyword_expected_status_code" name="keyword_expected_status_code" value="{{ monitor_details.expected_status_code|default:200 }}">
+                </div>
+            </div>
+
+            <!-- API Monitor Fields -->
+            <div id="api-fields" class="monitor-type-fields" {% if monitor.monitor_type != 'api' %}style="display: none;"{% endif %}>
+                <div class="mb-3">
+                    <label for="api_method" class="form-label">HTTP Method</label>
+                    <select class="form-select" id="api_method" name="api_method">
+                        <option value="GET" {% if monitor_details.method == 'GET' %}selected{% endif %}>GET</option>
+                        <option value="POST" {% if monitor_details.method == 'POST' %}selected{% endif %}>POST</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="api_headers" class="form-label">Headers (JSON format)</label>
+                    <textarea class="form-control" id="api_headers" name="api_headers" rows="3">{{ monitor_details.headers|default:'' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="api_body_data" class="form-label">Body Data (JSON format)</label>
+                    <textarea class="form-control" id="api_body_data" name="api_body_data" rows="3">{{ monitor_details.body_data|default:'' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="api_expected_status_code" class="form-label">Expected HTTP Status Code</label>
+                    <input type="number" class="form-control" id="api_expected_status_code" name="api_expected_status_code" value="{{ monitor_details.expected_status_code|default:200 }}">
+                </div>
+                <div class="mb-3">
+                    <label for="api_response_keyword" class="form-label">Response Keyword (optional)</label>
+                    <input type="text" class="form-control" id="api_response_keyword" name="api_response_keyword" value="{{ monitor_details.response_keyword|default:'' }}">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success">Save Changes</button>
+            <a href="{% url 'monitor_detail' monitor.id %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Show fields based on initial monitor type
+            var initialType = $('#monitor_type').val();
+            $('.monitor-type-fields').hide();
+            if (initialType === 'http') {
+                $('#http-fields').show();
+            } else if (initialType === 'keyword') {
+                $('#keyword-fields').show();
+            } else if (initialType === 'api') {
+                $('#api-fields').show();
+            }
+        });
+    </script>
+{% endblock %}

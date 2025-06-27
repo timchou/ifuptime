@@ -1,0 +1,49 @@
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Virtual environment
+venv/
+.venv/
+
+# IDE-specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Database files
+*.sqlite3
+
+# Static and media files (collected by Django)
+/staticfiles/
+/media/
+
+# Environment variables file
+.env
+
+# Docker-related files
+*.dockerignore
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Celery Beat schedule file (if using default file-based scheduler)
+celerybeat-schedule
+
+# Celery worker state files
+celeryd-*.pid
+
+# Python build artifacts
+build/
+dist/
+*.egg-info/
+
+# Test coverage reports
+.coverage
+.coverage.*
+htmlcov/
+
+# My custom additions
+/theme_template/

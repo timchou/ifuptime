@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Monitor Detail - {{ monitor.name }}{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <div class="slim-pageheader">
+            <ol class="breadcrumb slim-breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ monitor.name }}</li>
+            </ol>
+            <h6 class="slim-pagetitle">Monitor Detail: {{ monitor.name }}</h6>
+        </div><!-- slim-pageheader -->
+
+        <div class="card card-body mg-t-20">
+            <h5 class="card-title">Basic Information</h5>
+            <p><strong>Name:</strong> {{ monitor.name }}</p>
+            <p><strong>Type:</strong> {{ monitor.get_monitor_type_display }}</p>
+            <p><strong>Target:</strong> {{ monitor.target }}</p>
+            <p><strong>Frequency:</strong> {{ monitor.frequency }} seconds</p>
+            <p><strong>Active:</strong> {% if monitor.is_active %}Yes{% else %}No{% endif %}</p>
+            <p><strong>Created At:</strong> {{ monitor.created_at|date:"Y-m-d H:i" }}</p>
+            <p><strong>Last Updated:</strong> {{ monitor.updated_at|date:"Y-m-d H:i" }}</p>
+        </div>
+
+        {% if monitor_details %}
+            <div class="card card-body mg-t-20">
+                <h5 class="card-title">Type Specific Details</h5>
+                {% if monitor.monitor_type == 'http' %}
+                    <p><strong>Expected Status Code:</strong> {{ monitor_details.expected_status_code }}</p>
+                {% elif monitor.monitor_type == 'keyword' %}
+                    <p><strong>Keyword:</strong> {{ monitor_details.keyword }}</p>
+                    <p><strong>Expected Status Code:</strong> {{ monitor_details.expected_status_code }}</p>
+                {% elif monitor.monitor_type == 'api' %}
+                    <p><strong>Method:</strong> {{ monitor_details.method }}</p>
+                    <p><strong>Headers:</strong> <pre>{{ monitor_details.headers|default_if_none:"N/A" }}</pre></p>
+                    <p><strong>Body Data:</strong> <pre>{{ monitor_details.body_data|default_if_none:"N/A" }}</pre></p>
+                    <p><strong>Expected Status Code:</strong> {{ monitor_details.expected_status_code }}</p>
+                    <p><strong>Response Keyword:</strong> {{ monitor_details.response_keyword|default_if_none:"N/A" }}</p>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <div class="card card-body mg-t-20">
+            <h5 class="card-title">Response Time Trend</h5>
+            <div class="bd pd-t-30 pd-b-20 pd-x-20"><canvas id="responseTimeChart" height="200"></canvas></div>
+        </div>
+
+        <div class="card card-body mg-t-20">
+            <h5 class="card-title">Recent Monitor Logs</h5>
+            {% if logs %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Status</th>
+                            <th>Response Time (ms)</th>
+                            <th>Status Code</th>
+                            <th>Response Content (Partial)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                            <tr>
+                                <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                <td>{% if log.is_up %}<span class="badge badge-success">Up</span>{% else %}<span class="badge badge-danger">Down</span>{% endif %}</td>
+                                <td>{{ log.response_time|floatformat:2 }}</td>
+                                <td>{{ log.status_code|default_if_none:"N/A" }}</td>
+                                <td>{{ log.response_content|truncatechars:100|default_if_none:"N/A" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No recent logs available for this monitor.</p>
+            {% endif %}
+        </div>
+
+        <div class="mg-t-20">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="{% url 'monitor_edit' monitor.id %}" class="btn btn-warning">Edit Monitor</a>
+            <a href="{% url 'monitor_delete' monitor.id %}" class="btn btn-danger">Delete Monitor</a>
+        </div>
+
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ block.super }}
+    <script src="{% static 'lib/chart.js/js/Chart.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            var ctx = document.getElementById('responseTimeChart').getContext('2d');
+
+            var labels = [];
+            var data = [];
+
+            {% for log in logs|dictsortreversed:"timestamp" %}
+                labels.push("{{ log.timestamp|date:"H:i:s" }}");
+                data.push({{ log.response_time|floatformat:2 }});
+            {% endfor %}
+
+            var chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Response Time (ms)',
+                        data: data,
+                        backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Response Time (ms)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

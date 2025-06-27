@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create New Monitor{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1>Create New Monitor</h1>
+        <form method="post" id="monitor-form">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="name" class="form-label">Monitor Name</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label for="monitor_type" class="form-label">Monitor Type</label>
+                <select class="form-select" id="monitor_type" name="monitor_type" required>
+                    <option value="">Select a type</option>
+                    <option value="http">HTTP(s)存活检测</option>
+                    <option value="keyword">关键字检测</option>
+                    <option value="api">API检测</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="target" class="form-label">Target (URL or API Endpoint)</label>
+                <input type="url" class="form-control" id="target" name="target" required>
+            </div>
+            <div class="mb-3">
+                <label for="frequency" class="form-label">Frequency (seconds)</label>
+                <input type="number" class="form-control" id="frequency" name="frequency" value="60" min="10" required>
+            </div>
+
+            <!-- HTTP Monitor Fields -->
+            <div id="http-fields" class="monitor-type-fields" style="display: none;">
+                <div class="mb-3">
+                    <label for="http_expected_status_code" class="form-label">Expected HTTP Status Code</label>
+                    <input type="number" class="form-control" id="http_expected_status_code" name="http_expected_status_code" value="200">
+                </div>
+            </div>
+
+            <!-- Keyword Monitor Fields -->
+            <div id="keyword-fields" class="monitor-type-fields" style="display: none;">
+                <div class="mb-3">
+                    <label for="keyword" class="form-label">Keyword to find</label>
+                    <input type="text" class="form-control" id="keyword" name="keyword">
+                </div>
+                <div class="mb-3">
+                    <label for="keyword_expected_status_code" class="form-label">Expected HTTP Status Code</label>
+                    <input type="number" class="form-control" id="keyword_expected_status_code" name="keyword_expected_status_code" value="200">
+                </div>
+            </div>
+
+            <!-- API Monitor Fields -->
+            <div id="api-fields" class="monitor-type-fields" style="display: none;">
+                <div class="mb-3">
+                    <label for="api_method" class="form-label">HTTP Method</label>
+                    <select class="form-select" id="api_method" name="api_method">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="api_headers" class="form-label">Headers (JSON format)</label>
+                    <textarea class="form-control" id="api_headers" name="api_headers" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="api_body_data" class="form-label">Body Data (JSON format)</label>
+                    <textarea class="form-control" id="api_body_data" name="api_body_data" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="api_expected_status_code" class="form-label">Expected HTTP Status Code</label>
+                    <input type="number" class="form-control" id="api_expected_status_code" name="api_expected_status_code" value="200">
+                </div>
+                <div class="mb-3">
+                    <label for="api_response_keyword" class="form-label">Response Keyword (optional)</label>
+                    <input type="text" class="form-control" id="api_response_keyword" name="api_response_keyword">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success">Create Monitor</button>
+        </form>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#monitor_type').change(function() {
+                $('.monitor-type-fields').hide();
+                var selectedType = $(this).val();
+                if (selectedType === 'http') {
+                    $('#http-fields').show();
+                } else if (selectedType === 'keyword') {
+                    $('#keyword-fields').show();
+                } else if (selectedType === 'api') {
+                    $('#api-fields').show();
+                }
+            });
+        });
+    </script>
+{% endblock %}

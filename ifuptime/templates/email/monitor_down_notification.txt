@@ -1,0 +1,22 @@
+Monitor Alert: {{ monitor.name }} is Down!
+
+Dear {{ user.username }},
+
+We regret to inform you that your monitor {{ monitor.name }} ({{ monitor.target }}) is currently experiencing issues.
+
+Details:
+Monitor Name: {{ monitor.name }}
+Target URL/API: {{ monitor.target }}
+Monitor Type: {{ monitor.get_monitor_type_display }}
+Issue Detected At: {{ log.timestamp|date:"Y-m-d H:i:s T" }}
+Status: {% if log.is_up %}Up{% else %}Down{% endif %}
+Response Time: {{ log.response_time|floatformat:2 }} ms
+Status Code: {{ log.status_code|default_if_none:"N/A" }}
+Node: {{ log.node_name|default_if_none:"N/A" }}
+
+Please log in to your dashboard for more details and to investigate the issue:
+{{ site_url }}{% url 'monitor_detail' monitor.id %}
+
+This is an automated notification. Please do not reply to this email.
+
+© {{ current_year }} ifuptime.com. All rights reserved.

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1>Welcome to your Dashboard, {{ user.username }}!</h1>
+        <p>This is your monitoring dashboard. Here are your monitors:</p>
+
+        <a href="{% url 'monitor_create' %}" class="btn btn-primary mb-3">Create New Monitor</a>
+
+        {% if monitors %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Target</th>
+                        <th>Frequency (s)</th>
+                        <th>Active</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for monitor in monitors %}
+                        <tr>
+                            <td>{{ monitor.name }}</td>
+                            <td>{{ monitor.get_monitor_type_display }}</td>
+                            <td>{{ monitor.target }}</td>
+                            <td>{{ monitor.frequency }}</td>
+                            <td>{% if monitor.is_active %}Yes{% else %}No{% endif %}</td>
+                            <td>{{ monitor.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <a href="{% url 'run_check' monitor.id %}" class="btn btn-sm btn-success">Run Check</a>
+                                <a href="{% url 'monitor_detail' monitor.id %}" class="btn btn-sm btn-info">View</a>
+                                <a href="{% url 'monitor_edit' monitor.id %}" class="btn btn-sm btn-warning">Edit</a>
+                                <a href="{% url 'monitor_delete' monitor.id %}" class="btn btn-sm btn-danger">Delete</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                You haven't created any monitors yet. Click the button above to create one!
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
