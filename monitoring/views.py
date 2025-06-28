@@ -1,3 +1,4 @@
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
@@ -177,14 +178,17 @@ def run_check_view(request, monitor_id):
 def monitor_detail_view(request, monitor_id):
     monitor = get_object_or_404(Monitor, id=monitor_id, user=request.user)
     monitor_details = None
-    if monitor.monitor_type == 'http':
-        monitor_details = HttpMonitor.objects.get(monitor=monitor)
-    elif monitor.monitor_type == 'keyword':
-        monitor_details = KeywordMonitor.objects.get(monitor=monitor)
-    elif monitor.monitor_type == 'api':
-        monitor_details = ApiMonitor.objects.get(monitor=monitor)
-    elif monitor.monitor_type == 'ssl':
-        monitor_details = SslMonitor.objects.get(monitor=monitor)
+    try:
+        if monitor.monitor_type == 'http':
+            monitor_details = HttpMonitor.objects.get(monitor=monitor)
+        elif monitor.monitor_type == 'keyword':
+            monitor_details = KeywordMonitor.objects.get(monitor=monitor)
+        elif monitor.monitor_type == 'api':
+            monitor_details = ApiMonitor.objects.get(monitor=monitor)
+        elif monitor.monitor_type == 'ssl':
+            monitor_details = SslMonitor.objects.get(monitor=monitor)
+    except (HttpMonitor.DoesNotExist, KeywordMonitor.DoesNotExist, ApiMonitor.DoesNotExist, SslMonitor.DoesNotExist):
+        monitor_details = None # Set to None if related object does not exist
 
     logs = MonitorLog.objects.filter(monitor=monitor).order_by('-timestamp')[:100] # Get latest 100 logs for chart
 
@@ -199,14 +203,17 @@ def monitor_detail_view(request, monitor_id):
 def monitor_edit_view(request, monitor_id):
     monitor = get_object_or_404(Monitor, id=monitor_id, user=request.user)
     monitor_details = None
-    if monitor.monitor_type == 'http':
-        monitor_details = HttpMonitor.objects.get(monitor=monitor)
-    elif monitor.monitor_type == 'keyword':
-        monitor_details = KeywordMonitor.objects.get(monitor=monitor)
-    elif monitor.monitor_type == 'api':
-        monitor_details = ApiMonitor.objects.get(monitor=monitor)
-    elif monitor.monitor_type == 'ssl':
-        monitor_details = SslMonitor.objects.get(monitor=monitor)
+    try:
+        if monitor.monitor_type == 'http':
+            monitor_details = HttpMonitor.objects.get(monitor=monitor)
+        elif monitor.monitor_type == 'keyword':
+            monitor_details = KeywordMonitor.objects.get(monitor=monitor)
+        elif monitor.monitor_type == 'api':
+            monitor_details = ApiMonitor.objects.get(monitor=monitor)
+        elif monitor.monitor_type == 'ssl':
+            monitor_details = SslMonitor.objects.get(monitor=monitor)
+    except (HttpMonitor.DoesNotExist, KeywordMonitor.DoesNotExist, ApiMonitor.DoesNotExist, SslMonitor.DoesNotExist):
+        monitor_details = None # Set to None if related object does not exist
 
     user = request.user
 

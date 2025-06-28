@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -52,7 +51,7 @@
     <div class="slim-header">
       <div class="container">
         <div class="slim-header-left">
-          <h2 class="slim-logo"><a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'home' %}{% endif %}">ifuptime<span>.</span></a></h2>
+          <h2 class="slim-logo"><a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'home' %}{% endif %}">ifuptime<span>.</span></a> <span class="badge badge-warning mg-l-5">Beta</span></h2>
 
           <form action="{% url 'dashboard' %}" method="GET">
             <div class="search-box">
@@ -134,7 +133,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'monitor_create' %}">
+            <a class="nav-link" href="{% url 'monitor_create' %}>
               <i class="icon ion-ios-plus-outline"></i>
               <span>Create Monitor</span>
             </a>
