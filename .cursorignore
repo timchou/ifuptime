@@ -1,0 +1,77 @@
+# === Python / Django 项目常规 ===
+__pycache__/
+*.py[cod]
+*.so
+*.log
+*.sqlite3
+*.db
+*.pkl
+
+# 虚拟环境
+venv/
+.venv/
+env/
+.env/
+*.egg-info/
+pip-wheel-metadata/
+
+# Django migration 文件
+**/migrations/
+**/migrations/*.py
+
+# Django 本地环境配置
+.env
+.env.*
+
+# 静态 & 媒体文件
+static/
+staticfiles/
+media/
+assets/
+dist/
+
+# 缓存 / 临时
+.mypy_cache/
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+.cache/
+.tmp/
+.DS_Store
+
+# === 前端相关（Vue / React / Vite / Webpack）===
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+*.map
+
+# === Celery 相关 ===
+celerybeat-schedule
+celerybeat.pid
+
+# === Redis 临时存储（如有绑定 socket/volume）===
+*.rdb
+*.aof
+dump.rdb
+appendonly.aof
+
+# === Docker 相关（自动生成文件/volume）===
+docker-compose.override.yml
+.docker/
+docker/
+logs/
+tmp/
+*.pid
+*.sock
+
+# === Cursor 本地数据（不需 AI Agent 分析）===
+cursor-history/
+
+# === 其他本地开发相关 ===
+.idea/
+.vscode/
+*.iml
+

@@ -1,0 +1,47 @@
+ignore:
+  - node_modules/
+  - venv/
+  - .venv/
+  - .mypy_cache/
+  - static/
+  - media/
+  - **/migrations/
+  - cursor-history/
+
+rules:
+
+  # 2. 补充 Python 类型提示（type hints）
+  - name: add-python-type-hints
+    description: 给函数和方法添加类型注解
+    match: "*.py"
+    run: |
+      For each function or method, infer and add missing type annotations.
+
+  # 3. 对 Django model 字段添加 verbose_name
+  - name: add-verbose-name-to-fields
+    description: 给 Django model 字段添加 verbose_name，便于后台管理
+    match: "*/models.py"
+    run: |
+      For each field in Django models, if verbose_name is missing, add a descriptive one based on the field name.
+
+  # 4. 删除未使用的导入 / 函数 / 变量
+  - name: remove-dead-code
+    description: 删除未使用代码
+    match: "*.py"
+    run: |
+      Remove all unused imports, variables, and functions that are not referenced anywhere else.
+
+  # 6. Django 表单和序列化器添加字段注释
+  - name: annotate-fields
+    description: 给表单字段或 serializer 字段添加注释
+    match: "*/*serializer*.py"
+    run: |
+      Add comments above each field explaining its purpose, especially for non-obvious ones.
+
+  # 7. 自动排序 import（按标准库 → 第三方 → 本地）
+  - name: sort-imports
+    description: 统一 Python import 顺序
+    match: "*.py"
+    run: |
+      Sort all import statements: first standard libraries, then third-party packages, then local imports, with each group separated by a blank line.
+
